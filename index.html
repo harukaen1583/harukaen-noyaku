@@ -264,8 +264,9 @@ function sprayerName() { return $('sprayer').value === '__other' ? $('sprayerOth
 // ---- 入力：農薬（混用のときは何種類でも） ----
 var itemSeq = 0;
 function productOptions(selected, all) {
-  var anyUse = master.some(function (m) { return m.use; });
-  var pool = master.filter(function (m) { return all || !anyUse || m.use || m.name === selected; });
+  // 「よく使う」だけにチェックした農薬も「使う」に含める
+  var anyUse = master.some(function (m) { return m.use || m.fav; });
+  var pool = master.filter(function (m) { return all || !anyUse || m.use || m.fav || m.name === selected; });
   function opts(list) { return list.map(function (m) { return '<option' + (m.name === selected ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join(''); }
   var fav = pool.filter(function (m) { return m.fav; });
   var html = '<option value="">農薬を選んでください</option>';
