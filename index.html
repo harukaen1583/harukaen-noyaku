@@ -162,9 +162,17 @@ function numVal(el) { var s = String(el.value).trim().replace(/[０-９．]/g, f
 function setStatus(m, err) { $('status').textContent = m || ''; $('status').style.color = err ? '#b42318' : '#2f7d4a'; }
 function isDilute(m) { return DILUTE.indexOf(m.method) >= 0; }
 function chemUnit(name) { return /水和剤|顆粒|DF|WDG|ドライ|水溶剤|粉/.test(name) ? 'g' : 'ml'; }
-function targetList(m) { return m.targets.split('、').map(function (t) { return t.replace(/[①-⑳]/g, '').trim(); }).filter(String); }
-// 回数を数えるまとまり：有効成分が入っていれば成分ごと、なければ商品ごと
-function countKey(name) { var m = byName[name]; return m && m.ingredient ? '成分:' + m.ingredient : '商品:' + name; }
+function targetList(m) { return m.targets.split('、').map(function (t) { return t.replace(/[①-⑳]/g, '').replace(/[(（].*?[)）]/g, '').trim(); }).filter(String); }
+// 回数を数えるまとまり：有効成分が入っていれば成分ごと（混合剤は成分それぞれ）、なければ商品ごと
+function countParts(name) {
+  var m = byName[name];
+  if (!m || !m.ingredient) return [{key: '商品:' + name, label: name, max: m && m.maxTimes ? Number(m.maxTimes) : null}];
+  var maxes = String(m.maxTimes || '').split('・');
+  return m.ingredient.split('・').map(function (ing, i) {
+    var n = Number(maxes[i]);
+    return {key: '成分:' + ing, label: ing, max: maxes[i] && isFinite(n) ? n : null};
+  });
+}
 
 // 合言葉（このスマホに覚えておく。栽培管理と共通）
 var memKey = '';
@@ -225,7 +233,7 @@ function renderOk() {
     }
     if (unknown.length) {
       cls = 'ok unk'; big = '確認が必要';
-      why = unknown.map(function (s) { return md(s.date) + ' ' + s.name; }).join('、') + '：収穫前日数が農薬マスタに入っていません';
+      why = unknown.map(function (s) { return md(s.date) + ' ' + s.name; }).join('、') + '：収穫前日数では決められない農薬です。使用時期を確認してください';
     }
     html += '<div class="' + cls + '"><div class="h">' + h + '</div><div class="big">' + esc(big) + '</div><div class="why">' + esc(why) + '</div></div>';
   });
@@ -321,10 +329,11 @@ function fillItem(div, v) {
 }
 function itemNames() { return Array.prototype.map.call(document.querySelectorAll('#items .prod'), function (s) { return s.value; }).filter(String); }
 // 今シーズンの回数（修正中の記録は数えない）
-function seasonCount(name, house, d) {
-  var st = seasonStart(d), key = countKey(name), ids = {};
+function seasonCount(key, house, d) {
+  var st = seasonStart(d), ids = {};
   sprays.forEach(function (s) {
-    if (s.house === house && s.id !== editId && s.date >= st && s.date <= addDays(st, 364) && countKey(s.name) === key) ids[s.id + '|' + s.name] = 1;
+    if (s.house !== house || s.id === editId || s.date < st || s.date > addDays(st, 364)) return;
+    if (countParts(s.name).some(function (p) { return p.key === key; })) ids[s.id + '|' + s.name] = 1;
   });
   return Object.keys(ids).length;
 }
@@ -337,16 +346,19 @@ function updateItems() {
     var imp = IMPACT.map(function (k) { var v = m.impact[k]; return v && v !== '—' ? k + ' ' + v : ''; }).filter(String);
     var info = '<b>' + esc(m.name) + '</b>（' + esc(m.type) + '・系統 ' + esc(m.group || '—') + '）<br>' +
       '使用時期：' + esc(m.timing || '—') + '　使用回数：' + esc(m.timesText || '—') +
-      (m.phi !== null ? '　→ 散布後 <b>' + m.phi + '日</b>で摘み取りOK' : '　→ <span class="w">収穫前日数が未入力</span>');
-    if (m.ingredient) info += '<br>有効成分：' + esc(m.ingredient) + (m.maxTimes !== null ? '（上限 ' + m.maxTimes + '回）' : '');
+      (m.phi !== null ? '　→ 散布後 <b>' + m.phi + '日</b>で摘み取りOK' : '　→ <span class="w">収穫前日数では決められません。使用時期を確認してください</span>');
+    if (m.note) info += '<br>注意：' + esc(m.note);
     if (imp.length) info += '<br>ハチ・天敵への影響日数：' + esc(imp.join('、'));
-    if (hs.length) {
-      info += '<br>今シーズン' + (m.ingredient ? '（同じ成分）' : '') + 'の使用：' + hs.map(function (h) {
-        var c = seasonCount(m.name, h, d), over = m.maxTimes !== null && c + 1 > m.maxTimes;
+    countParts(m.name).forEach(function (p) {
+      if (m.ingredient) info += '<br>有効成分：' + esc(p.label) + (p.max !== null ? '（上限 ' + p.max + '回）' : '');
+      if (!hs.length) return;
+      info += (m.ingredient ? '<br>' : '<br>') + '今シーズン' + (m.ingredient ? '（同じ成分）' : '') + 'の使用：' + hs.map(function (h) {
+        var c = seasonCount(p.key, h, d), over = p.max !== null && c + 1 > p.max;
         return (over ? '<span class="w">' : '') + h + ' ' + c + '回→今回で' + (c + 1) + '回' + (over ? '（上限を超えます）</span>' : '');
       }).join('、');
-    }
-    if (m.status !== '確認済み') info += '<br><span class="w">この農薬の情報は、登録情報との照らし合わせがまだです。</span>';
+    });
+    if (m.status === '要確認') info += '<br><span class="w">' + esc(m.check || 'この農薬は確認が必要です。') + '</span>';
+    else if (m.status !== '確認済み') info += '<br><span class="w">この農薬の情報は、登録情報との照らし合わせがまだです。</span>';
     q('.info').innerHTML = info;
     if (isDilute(m)) {
       var dil = numVal(q('.dil')), out = '';
@@ -394,12 +406,15 @@ function save() {
   if (busy) return;
   var c = collect();
   if (c.err) return setStatus(c.err, true);
-  var over = [];
+  var over = [], unreg = [];
   c.data.items.forEach(function (it) {
-    var m = byName[it.name];
-    if (m.maxTimes === null) return;
-    c.data.houses.forEach(function (h) { if (seasonCount(it.name, h.house, c.data.date) + 1 > m.maxTimes) over.push(h.house + ' ' + it.name); });
+    if (byName[it.name].status === '要確認') unreg.push(it.name);
+    countParts(it.name).forEach(function (p) {
+      if (p.max === null) return;
+      c.data.houses.forEach(function (h) { if (seasonCount(p.key, h.house, c.data.date) + 1 > p.max) over.push(h.house + ' ' + it.name + '（' + p.label + '）'); });
+    });
   });
+  if (unreg.length && !confirm('次の農薬は登録の確認が必要です。\n' + unreg.join('\n') + '\n\n本当に保存しますか？')) return;
   if (over.length && !confirm('使用回数の上限を超えます。\n' + over.join('\n') + '\n\n本当に保存しますか？')) return;
   setBusy(true); setStatus('保存しています。');
   if (c.data.sprayer) remember('harukaen_sprayer', c.data.sprayer);
@@ -483,11 +498,14 @@ function renderCounts() {
   var t = today(), st = seasonStart(t), rows = {}, order = [];
   sprays.forEach(function (s) {
     if (s.date < st || s.date > t) return;
-    var k = countKey(s.name);
-    if (!rows[k]) { rows[k] = {label: byName[s.name] && byName[s.name].ingredient ? byName[s.name].ingredient : s.name, names: {}, ids: {}, max: byName[s.name] ? byName[s.name].maxTimes : null, last: ''}; order.push(k); }
-    rows[k].names[s.name] = 1;
-    rows[k].ids[s.house + '|' + s.id] = s.house;
-    if (s.date > rows[k].last) rows[k].last = s.date;
+    countParts(s.name).forEach(function (p) {
+      var k = p.key;
+      if (!rows[k]) { rows[k] = {label: p.label, names: {}, ids: {}, max: null, last: ''}; order.push(k); }
+      rows[k].names[s.name] = 1;
+      rows[k].ids[s.house + '|' + s.id + '|' + s.name] = s.house;
+      if (p.max !== null && (rows[k].max === null || p.max > rows[k].max)) rows[k].max = p.max;
+      if (s.date > rows[k].last) rows[k].last = s.date;
+    });
   });
   $('countHead').innerHTML = '<tr><th>農薬（成分）</th>' + HOUSE_LIST.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '<th>上限</th><th>最後</th></tr>';
   order.sort(function (a, b) { return rows[b].last.localeCompare(rows[a].last); });
