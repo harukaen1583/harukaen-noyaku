@@ -208,7 +208,7 @@ function renderOk() {
       var m = byName[s.name];
       if (!m || m.phi === null) { if (s.date >= addDays(t, -90)) unknown.push(s); return; }
       var ok = addDays(s.date, m.phi);
-      if (ok > t && m.status !== '確認済み') unconf = true;
+      if (s.date >= addDays(t, -90) && m.status !== '確認済み') unconf = true;
       if (!best || ok > best.ok) best = {ok: ok, s: s};
     });
     var cls = 'ok', big, why = '';
@@ -219,7 +219,9 @@ function renderOk() {
     } else {
       big = '摘み取りOK';
       var last = sprays.filter(function (s) { return s.house === h && s.date <= t; }).sort(function (a, b) { return b.date.localeCompare(a.date); })[0];
-      why = last ? '最後の散布：' + md(last.date) + ' ' + last.name : '散布の記録なし';
+      why = last ? '最後の散布：' + md(last.date) + ' ' + last.name : '';
+      // 記録がないだけのときは「OK」と言わない（これまでの散布を入力すると計算できる）
+      if (!last) { cls = 'ok unk'; big = '記録なし'; why = 'これまでの散布を入力すると計算します'; }
     }
     if (unknown.length) {
       cls = 'ok unk'; big = '確認が必要';
