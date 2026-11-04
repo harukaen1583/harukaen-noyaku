@@ -87,6 +87,16 @@ td.over{color:#b42318;font-weight:800}
 .dup{font-size:14px;line-height:1.6;background:#fdf6e3;border-radius:8px;padding:8px 10px;margin-top:8px;color:#6b4407}
 details{margin-top:4px}summary{cursor:pointer;font-weight:650}
 .found{border-bottom:1px solid #eadfd6;padding:8px 0;font-size:15px;line-height:1.5}
+/* 異変メモ */
+.badge{display:inline-block;background:#b42318;color:#fff;font-size:13px;font-weight:700;padding:1px 8px;border-radius:6px;margin-left:4px}
+.memo{border-bottom:1px solid #eadfd6;padding:10px 0;font-size:15px;line-height:1.6}
+.memo.off{opacity:.6}
+.memo .btns{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.memo .btns button{flex:1;padding:8px 4px;font-size:14px;font-weight:700;border-radius:8px;border:1px solid #8a3b12;background:#fff;color:#8a3b12}
+.memo .btns button.x{border-color:#b42318;color:#b42318}
+#memoCard{border:3px solid #b42318}
+.cond{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cond select{padding:10px 4px;font-size:17px}
 .wrap{overflow-x:auto}
 @media(max-width:520px){body{padding:0 9px 9px}#dateBar{margin:0 -9px;padding:10px 9px}.card{padding:12px}.row{gap:8px}.ok .big{font-size:17px}}
 </style>
@@ -138,6 +148,14 @@ details{margin-top:4px}summary{cursor:pointer;font-weight:650}
   <select id="sprayer"></select>
   <input id="sprayerOther" type="text" placeholder="名前を入力" autocomplete="off" style="display:none;margin-top:8px">
 
+  <label>散布したときの条件（薬害の手がかりになります）</label>
+  <div class="cond">
+    <select id="cTime" aria-label="時間帯"><option value="">時間帯</option><option>朝</option><option>昼</option><option>夕</option></select>
+    <select id="cWeather" aria-label="天候"><option value="">天候</option><option>晴れ</option><option>曇り</option><option>雨（雪）</option></select>
+    <select id="cDry" aria-label="乾き具合"><option value="">乾き</option><option value="早い">乾き 早い</option><option value="ふつう">乾き ふつう</option><option value="悪い">乾き 悪い</option></select>
+  </div>
+  <div class="note">乾き具合は、あとから記録の「修正」で入れることもできます。</div>
+
   <div id="items"></div>
   <button class="sub" id="addItem" type="button">＋ 農薬を追加（混ぜて使ったとき）</button>
 
@@ -172,6 +190,41 @@ details{margin-top:4px}summary{cursor:pointer;font-weight:650}
   <div class="note" id="listNote">読み込み中です。</div>
 </div>
 
+<div class="card" id="memoCard" style="display:none">
+  <h2 id="memoTitle">異変メモを書く</h2>
+  <div class="info" id="memoSpray"></div>
+  <div class="row">
+    <div><label for="mNoticed">気づいた日</label><input id="mNoticed" type="date"></div>
+    <div><label for="mHouse">ハウス</label><select id="mHouse"></select></div>
+  </div>
+  <label for="mCause">原因と思う農薬</label><select id="mCause"></select>
+  <label>症状（いくつでも）</label><div class="chips" id="mSymptoms"></div>
+  <div class="row">
+    <div><label for="mSeverity">程度</label><select id="mSeverity"><option value="">選んでください</option><option>軽い</option><option>中くらい</option><option>ひどい</option></select></div>
+    <div><label for="mWriter">書いた人</label><select id="mWriter"></select></div>
+  </div>
+  <input id="mWriterOther" type="text" placeholder="名前を入力" autocomplete="off" style="display:none;margin-top:8px">
+  <label for="mText">内容</label>
+  <textarea id="mText" placeholder="例：散布3日後に下葉の縁が茶色くなった"></textarea>
+  <button class="primary" id="mSave" type="button">異変メモを保存</button>
+  <button class="sub" id="mCancel" type="button">やめる</button>
+  <div class="status" id="mStatus" role="status" aria-live="polite"></div>
+</div>
+
+<div class="card">
+  <h2>異変メモの一覧</h2>
+  <div class="note">散布のあとで気づいた薬害や傷害の記録です。メモを書くときは、「散布の記録一覧」の「異変メモを書く」を押してください。</div>
+  <div class="tabs" id="memoTabs">
+    <button type="button" data-mh="" class="on">全部</button>
+    <button type="button" data-mh="0番">0番</button>
+    <button type="button" data-mh="2番">2番</button>
+    <button type="button" data-mh="3番">3番</button>
+  </div>
+  <input id="memoQ" type="text" placeholder="農薬の名前で絞り込む" autocomplete="off">
+  <div id="memoList"></div>
+  <div class="note" id="memoNote"></div>
+</div>
+
 <div class="card">
   <h2>今シーズンの使用回数</h2>
   <div class="note" id="countNote"></div>
@@ -187,7 +240,9 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbw2HVI7LLcoS1qIYgT9wU39YA
 var HOUSE_LIST = ['0番', '2番', '3番'];
 var DILUTE = ['散布', '灌注'];
 var IMPACT = ['ミツバチ', 'マルハナバチ', 'チリカブリダニ', 'ミヤコカブリダニ', 'ククメリス', 'クイーンフライ'];
-var master = [], byName = {}, sprays = [], sprayers = [], intros = [], lookback = 7, busy = true, editId = '', serverToday = '';
+var SYMPTOMS = ['葉焼け', '葉の変色', '萎縮', '奇形果', '果実の異常', '花の異常', '生育の停滞', 'ハチ・天敵の異常', 'その他'];
+var CAUSE_ALL = '混用全体', CAUSE_UNKNOWN = '分からない';
+var master = [], byName = {}, sprays = [], sprayers = [], intros = [], memos = [], lookback = 7, busy = true, editId = '', serverToday = '';
 var $ = function (id) { return document.getElementById(id); };
 var WD = ['日','月','火','水','木','金','土'];
 function md(s) { return Number(s.slice(5, 7)) + '/' + Number(s.slice(8)); }
@@ -387,6 +442,123 @@ function renderPestList() {
   $('pestList').innerHTML = opts.map(function (p) { return '<option value="' + esc(p) + '">'; }).join('');
 }
 
+// ---- 異変メモ ----
+var memoSprayId = '', memoEditId = '', memoHouse = '';
+function ymd(s) { return s ? s.slice(0, 4) + '/' + md(s) : ''; }
+function condText(o) {
+  var a = [];
+  if (o.time) a.push(o.time); if (o.weather) a.push(o.weather); if (o.dry) a.push('乾き' + o.dry);
+  return a.join('・');
+}
+function memoMixed(x) { return x.mixed ? x.mixed.split('、').filter(String) : []; }
+function memoCauses(x) { return x.cause === CAUSE_ALL || x.cause === CAUSE_UNKNOWN ? memoMixed(x) : [x.cause]; }
+// 条件はあとから「修正」で入れることがあるので、元の散布があればそちらを見る
+function memoCond(x) { return sprays.filter(function (s) { return s.id === x.sprayId; })[0] || x; }
+function memoLine(x) {
+  var mix = memoMixed(x), c = condText(memoCond(x));
+  return x.house + ' ' + ymd(x.sprayDate) + '散布（' + md(x.noticed) + 'に気づく）：' + (x.symptoms || '症状の記入なし') + '・' + x.severity +
+    '／原因と思う農薬：' + x.cause + (mix.length > 1 ? '／混用：' + mix.join('＋') : '') + (c ? '／条件：' + c : '');
+}
+function ingOf(name) { var m = byName[name]; return m && m.ingredient ? m.ingredient.split('・') : []; }
+// 選んだ農薬についての注意。同じ農薬は強く、同じ有効成分の別の農薬は軽く
+function memoNotes(name, selected, dry) {
+  var strong = [], light = [];
+  memos.forEach(function (x) {
+    if (x.stopped) return;
+    var mix = memoMixed(x), causes = memoCauses(x);
+    if (causes.indexOf(name) >= 0) {
+      var same = mix.length > 1 && mix.every(function (n) { return selected.indexOf(n) >= 0; });
+      strong.push((same ? '前回と同じ混用です。' : '') + memoLine(x) + (memoCond(x).dry === '悪い' && dry === '悪い' ?'　今回も乾きが悪い条件です。' : ''));
+      return;
+    }
+    var mine = ingOf(name), hit = [];
+    causes.forEach(function (c) { ingOf(c).forEach(function (i) { if (mine.indexOf(i) >= 0 && hit.indexOf(i) < 0) hit.push(i); }); });
+    if (hit.length) light.push('同じ成分（' + hit.join('・') + '）の農薬で異変あり：' + memoLine(x));
+  });
+  return {strong: strong, light: light};
+}
+function openMemo(sprayId, memoId) {
+  var x = memoId ? memos.filter(function (m) { return m.id === memoId; })[0] : null;
+  memoEditId = memoId || ''; memoSprayId = x ? x.sprayId : sprayId;
+  var rows = sprays.filter(function (s) { return s.id === memoSprayId; });
+  var houses = rows.map(function (s) { return s.house; }).filter(function (h, i, a) { return a.indexOf(h) === i; }).sort();
+  if (!houses.length && x) houses = [x.house];
+  var house = x ? x.house : houses[0];
+  $('mHouse').innerHTML = houses.map(function (h) { return '<option' + (h === house ? ' selected' : '') + '>' + esc(h) + '</option>'; }).join('');
+  $('memoTitle').textContent = x ? '異変メモを修正' : '異変メモを書く';
+  $('mNoticed').value = x ? x.noticed : today();
+  $('mSeverity').value = x ? x.severity : '';
+  $('mText').value = x ? x.text : '';
+  var cur = x ? x.symptoms.split('、') : [];
+  $('mSymptoms').innerHTML = SYMPTOMS.map(function (s) { return '<label><input type="checkbox" value="' + esc(s) + '"' + (cur.indexOf(s) >= 0 ? ' checked' : '') + '>' + esc(s) + '</label>'; }).join('');
+  var w = x ? x.writer : recall('harukaen_sprayer');
+  $('mWriter').innerHTML = '<option value="">選んでください</option>' + sprayers.map(function (n) { return '<option>' + esc(n) + '</option>'; }).join('') + '<option value="__other">その他（名前を入力）</option>';
+  if (w && sprayers.indexOf(w) >= 0) { $('mWriter').value = w; $('mWriterOther').style.display = 'none'; }
+  else if (w) { $('mWriter').value = '__other'; $('mWriterOther').value = w; $('mWriterOther').style.display = ''; }
+  else { $('mWriter').value = ''; $('mWriterOther').style.display = 'none'; }
+  $('mStatus').textContent = '';
+  memoHouseChanged(x ? x.cause : '');
+  $('memoCard').style.display = '';
+  $('memoCard').scrollIntoView({behavior: 'smooth'});
+}
+// ハウスを変えると、そのハウスで使った農薬を選び直す
+function memoHouseChanged(keep) {
+  var h = $('mHouse').value, rows = sprays.filter(function (s) { return s.id === memoSprayId && s.house === h; });
+  var x = memoEditId ? memos.filter(function (m) { return m.id === memoEditId; })[0] : null;
+  var names = rows.length ? rows.map(function (s) { return s.name; }) : (x ? memoMixed(x) : []);
+  var opts = names.slice();
+  if (names.length > 1) opts.push(CAUSE_ALL);
+  opts.push(CAUSE_UNKNOWN);
+  $('mCause').innerHTML = opts.map(function (n) { return '<option>' + esc(n) + '</option>'; }).join('');
+  if (keep && opts.indexOf(keep) >= 0) $('mCause').value = keep;
+  var s0 = rows[0];
+  $('memoSpray').innerHTML = s0 ? '<b>' + esc(ymd(s0.date)) + ' ' + esc(h) + ' の散布</b><br>' + esc(names.join('＋')) + (condText(s0) ? '<br>条件：' + esc(condText(s0)) : '') : (x ? '<b>' + esc(ymd(x.sprayDate)) + ' ' + esc(h) + ' の散布</b>（元の記録は消されています）<br>' + esc(names.join('＋')) : '');
+}
+function saveMemoForm() {
+  if (busy) return;
+  var writer = $('mWriter').value === '__other' ? $('mWriterOther').value.trim() : $('mWriter').value;
+  var sym = Array.prototype.map.call(document.querySelectorAll('#mSymptoms input:checked'), function (c) { return c.value; });
+  var d = {id: memoEditId, sprayId: memoSprayId, noticed: $('mNoticed').value, house: $('mHouse').value, cause: $('mCause').value,
+    symptoms: sym, severity: $('mSeverity').value, writer: writer, text: $('mText').value.trim()};
+  function bad(m) { $('mStatus').textContent = m; $('mStatus').style.color = '#b42318'; }
+  if (!d.noticed) return bad('気づいた日を入れてください。');
+  if (d.noticed > today()) return bad('気づいた日が明日以降になっています。');
+  if (!d.severity) return bad('程度を選んでください。');
+  if (!sym.length && !d.text) return bad('症状を選ぶか、内容を書いてください。');
+  busy = true; $('mSave').disabled = true; $('mStatus').textContent = '保存しています。'; $('mStatus').style.color = '#2f7d4a';
+  api('saveMemo', d).then(function (r) {
+    busy = false; $('mSave').disabled = false; if (writer) remember('harukaen_sprayer', writer);
+    apply(r.data); $('memoCard').style.display = 'none'; $('memoNote').textContent = r.message; $('memoNote').scrollIntoView({behavior: 'smooth', block: 'center'});
+  }, function (e) { busy = false; $('mSave').disabled = false; bad('保存できませんでした：' + e.message); });
+}
+function memoCall(action, data) {
+  if (busy) return;
+  busy = true; $('memoNote').textContent = '保存しています。';
+  api(action, data).then(function (r) { busy = false; apply(r.data); $('memoNote').textContent = r.message; }, function (e) { busy = false; $('memoNote').textContent = '保存できませんでした：' + e.message; });
+}
+var memoFilter = '';
+function renderMemos() {
+  var q = $('memoQ').value.trim();
+  var list = memos.filter(function (x) {
+    if (memoFilter && x.house !== memoFilter) return false;
+    return !q || (x.cause + '、' + x.mixed).indexOf(q) >= 0;
+  }).sort(function (a, b) { return b.noticed.localeCompare(a.noticed); });
+  $('memoList').innerHTML = list.map(function (x) {
+    return '<div class="memo' + (x.stopped ? ' off' : '') + '"><b>' + esc(memoLine(x)) + '</b>' + (x.text ? '<br>' + esc(x.text) : '') +
+      (x.writer ? '<br><span class="note">書いた人：' + esc(x.writer) + '</span>' : '') + (x.stopped ? '<br><span class="note">注意を止めています</span>' : '') +
+      '<div class="btns"><button type="button" data-medit="' + esc(x.id) + '">修正</button><button type="button" data-mstop="' + esc(x.id) + '">' + (x.stopped ? '注意を戻す' : '注意を止める') + '</button><button type="button" class="x" data-mdel="' + esc(x.id) + '">消す</button></div></div>';
+  }).join('');
+  document.querySelectorAll('[data-medit]').forEach(function (b) { b.addEventListener('click', function () { openMemo('', b.dataset.medit); }); });
+  document.querySelectorAll('[data-mstop]').forEach(function (b) { b.addEventListener('click', function () {
+    var x = memos.filter(function (m) { return m.id === b.dataset.mstop; })[0];
+    memoCall('saveMemo', {id: x.id, stopOnly: true, stop: !x.stopped});
+  }); });
+  document.querySelectorAll('[data-mdel]').forEach(function (b) { b.addEventListener('click', function () {
+    if (confirm('この異変メモを消しますか？（元に戻せません）\n原因が別だと分かっただけなら「注意を止める」を使ってください。')) memoCall('deleteMemo', {id: b.dataset.mdel});
+  }); });
+  if (!$('memoNote').textContent || /件$|ありません/.test($('memoNote').textContent)) $('memoNote').textContent = !memos.length ? '異変メモはまだありません。' : '全' + list.length + '件';
+}
+
 // ---- 入力：ハウス ----
 var houseOn = {};
 function renderHouses() {
@@ -501,6 +673,9 @@ function updateItems() {
     if (m.note) info += '<br>注意：' + esc(m.note);
     info += '<br>ハチ・天敵への影響（目安）：' + esc(imp.join('、'));
     if (warns.length) info += '<br><span class="w">' + warns.map(esc).join('<br>') + '</span>';
+    var notes = memoNotes(m.name, itemNames(), $('cDry').value);
+    if (notes.strong.length) info += '<br><span class="w">⚠ 過去に異変がありました<br>' + notes.strong.map(esc).join('<br>') + '</span>';
+    if (notes.light.length) info += '<br>' + notes.light.map(esc).join('<br>');
     countParts(m.name).forEach(function (p) {
       if (m.ingredient) info += '<br>有効成分：' + esc(p.label) + (p.max !== null ? '（上限 ' + p.max + '回）' : '');
       if (!hs.length) return;
@@ -565,15 +740,17 @@ function collect() {
     items.push({name: m.name, dilution: dil, amount: isDilute(m) ? '' : q('.amt').value.trim(), targets: tg});
   });
   if (!items.length) err = err || '農薬を選んでください。';
-  return {err: err, data: {id: editId, date: d, houses: houses, items: items, sprayer: sprayerName(), memo: $('memo').value.trim()}};
+  return {err: err, data: {id: editId, date: d, houses: houses, items: items, sprayer: sprayerName(), memo: $('memo').value.trim(),
+    time: $('cTime').value, weather: $('cWeather').value, dry: $('cDry').value}};
 }
 function save() {
   if (busy) return;
   var c = collect();
   if (c.err) return setStatus(c.err, true);
-  var over = [], unreg = [], bee = [];
+  var over = [], unreg = [], bee = [], past = [];
   c.data.items.forEach(function (it) {
     if (byName[it.name].status === '要確認') unreg.push(it.name);
+    memoNotes(it.name, c.data.items.map(function (i) { return i.name; }), c.data.dry).strong.forEach(function (t) { if (past.indexOf(t) < 0) past.push(t); });
     c.data.houses.forEach(function (h) { IMPACT.forEach(function (sp) {
       if (inUse(h.house, sp, c.data.date)) { var w = beeWarn(byName[it.name], h.house, sp, c.data.date); if (w) bee.push(it.name + '　' + w); }
     }); });
@@ -584,6 +761,7 @@ function save() {
   });
   if (unreg.length && !confirm('次の農薬は登録の確認が必要です。\n' + unreg.join('\n') + '\n\n本当に保存しますか？')) return;
   if (bee.length && !confirm('導入中のハチ・天敵に影響があります。\n' + bee.join('\n') + '\n\n本当に保存しますか？')) return;
+  if (past.length && !confirm('過去に異変があった農薬です。\n' + past.join('\n') + '\n\n本当に保存しますか？')) return;
   if (over.length && !confirm('使用回数の上限を超えます。\n' + over.join('\n') + '\n\n本当に保存しますか？')) return;
   setBusy(true); setStatus('保存しています。');
   if (c.data.sprayer) remember('harukaen_sprayer', c.data.sprayer);
@@ -602,6 +780,7 @@ function resetForm(keepDate) {
   houseOn = {}; renderHouses();
   $('items').innerHTML = ''; addItem();
   $('memo').value = '';
+  $('cTime').value = ''; $('cWeather').value = ''; $('cDry').value = '';
   $('formTitle').textContent = '散布の記録'; $('cancelEdit').style.display = 'none';
   setBusy(false); renderBar();
 }
@@ -614,6 +793,7 @@ function startEdit(id) {
   HOUSE_LIST.forEach(function (h, i) { var r = rows.filter(function (s) { return s.house === h; })[0], el = $('vol_' + i); if (r && el) el.value = r.volume === null ? '' : r.volume; });
   renderSprayers(rows[0].sprayer);
   $('memo').value = rows[0].memo;
+  $('cTime').value = rows[0].time || ''; $('cWeather').value = rows[0].weather || ''; $('cDry').value = rows[0].dry || '';
   $('items').innerHTML = '';
   var first = rows[0].house;
   rows.filter(function (s) { return s.house === first; }).forEach(function (s) { addItem({name: s.name, dilution: s.dilution, amount: s.amount, targets: s.targets}); });
@@ -626,7 +806,8 @@ function removeSpray(id) {
   var rows = sprays.filter(function (s) { return s.id === id; });
   if (!rows.length || busy) return;
   var names = rows.map(function (s) { return s.name; }).filter(function (n, i, a) { return a.indexOf(n) === i; });
-  if (!confirm(jpDate(rows[0].date) + '　' + names.join('・') + '\nこの散布の記録を消しますか？（元に戻せません）')) return;
+  var hasMemo = memos.some(function (x) { return x.sprayId === id; });
+  if (!confirm(jpDate(rows[0].date) + '　' + names.join('・') + '\nこの散布の記録を消しますか？（元に戻せません）' + (hasMemo ? '\n異変メモは消えずに残ります。' : ''))) return;
   setBusy(true); $('listNote').textContent = '消しています。';
   api('deleteSpray', {id: id}).then(function (r) {
     setBusy(false); if (editId === id) resetForm(true); apply(r.data); $('listNote').textContent = r.message;
@@ -651,10 +832,12 @@ function renderList() {
     }).join('<br>');
     var vols = rows.filter(function (s, i, a) { return a.findIndex(function (x) { return x.house === s.house; }) === i && s.volume !== null; })
       .map(function (s) { return s.house + ' ' + fmt(s.volume) + 'L'; }).join('、');
-    return '<div class="rec"><div class="top"><span class="d">' + esc(jpDate(rows[0].date)) + '　' + esc(hs.join('・')) + '</span><span class="note">' + esc(rows[0].sprayer || '散布者 未入力') + '</span></div>' +
-      '<div class="p">' + items + (vols ? '<br><span class="note">散布液量：' + esc(vols) + '</span>' : '') + (rows[0].memo ? '<br><span class="note">メモ：' + esc(rows[0].memo) + '</span>' : '') + '</div>' +
-      '<div class="btns"><button type="button" data-edit="' + esc(rows[0].id) + '">修正</button><button type="button" class="x" data-del="' + esc(rows[0].id) + '">消す</button></div></div>';
+    var nMemo = memos.filter(function (x) { return x.sprayId === rows[0].id; }).length, cd = condText(rows[0]);
+    return '<div class="rec"><div class="top"><span class="d">' + esc(jpDate(rows[0].date)) + '　' + esc(hs.join('・')) + (nMemo ? '<span class="badge">異変あり ' + nMemo + '</span>' : '') + '</span><span class="note">' + esc(rows[0].sprayer || '散布者 未入力') + '</span></div>' +
+      '<div class="p">' + items + (cd ? '<br><span class="note">条件：' + esc(cd) + '</span>' : '') + (vols ? '<br><span class="note">散布液量：' + esc(vols) + '</span>' : '') + (rows[0].memo ? '<br><span class="note">メモ：' + esc(rows[0].memo) + '</span>' : '') + '</div>' +
+      '<div class="btns"><button type="button" data-mnew="' + esc(rows[0].id) + '">異変メモを書く</button><button type="button" data-edit="' + esc(rows[0].id) + '">修正</button><button type="button" class="x" data-del="' + esc(rows[0].id) + '">消す</button></div></div>';
   }).join('');
+  document.querySelectorAll('[data-mnew]').forEach(function (b) { b.addEventListener('click', function () { openMemo(b.dataset.mnew, ''); }); });
   document.querySelectorAll('[data-edit]').forEach(function (b) { b.addEventListener('click', function () { startEdit(b.dataset.edit); }); });
   document.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () { removeSpray(b.dataset.del); }); });
   $('moreBtn').style.display = all.length > listLimit ? '' : 'none';
@@ -693,7 +876,7 @@ function renderCounts() {
 // ---- 読み込み ----
 function apply(d) {
   master = d.master || []; sprays = d.sprays || []; sprayers = d.sprayers || []; serverToday = d.today || '';
-  intros = d.intros || []; lookback = d.lookback || 7;
+  intros = d.intros || []; lookback = d.lookback || 7; memos = d.memos || [];
   byName = {}; master.forEach(function (m) { byName[m.name] = m; });
   renderSprayers();
   // 農薬の一覧を作り直す（選んでいたものはそのまま）
@@ -702,7 +885,7 @@ function apply(d) {
     s.innerHTML = productOptions(v, a.checked);
   });
   if (!$('items').children.length) addItem();
-  renderOk(); renderBee(); renderIntro(); renderPestList(); renderSearch(); renderList(); renderCounts(); updateItems();
+  renderOk(); renderBee(); renderIntro(); renderPestList(); renderSearch(); renderList(); renderMemos(); renderCounts(); updateItems();
 }
 function load() {
   setBusy(true);
@@ -724,6 +907,19 @@ $('inAdd').addEventListener('click', function () {
   introCall('saveIntro', {house: $('inHouse').value, species: $('inSpecies').value, start: $('inDate').value});
 });
 $('pestQ').addEventListener('input', renderSearch);
+$('cDry').addEventListener('change', updateItems);
+$('mHouse').addEventListener('change', function () { memoHouseChanged($('mCause').value); });
+$('mWriter').addEventListener('change', function () { $('mWriterOther').style.display = $('mWriter').value === '__other' ? '' : 'none'; });
+$('mSave').addEventListener('click', saveMemoForm);
+$('mCancel').addEventListener('click', function () { $('memoCard').style.display = 'none'; });
+$('memoQ').addEventListener('input', function () { $('memoNote').textContent = ''; renderMemos(); });
+document.querySelectorAll('[data-mh]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    memoFilter = b.dataset.mh;
+    document.querySelectorAll('[data-mh]').forEach(function (y) { y.classList.toggle('on', y === b); });
+    $('memoNote').textContent = ''; renderMemos();
+  });
+});
 renderHouses();
 $('date').addEventListener('change', updateItems);
 $('dateBar').addEventListener('click', function () { window.scrollTo({top: $('formCard').offsetTop - 60, behavior: 'smooth'}); setTimeout(function () { $('date').focus(); }, 300); });
