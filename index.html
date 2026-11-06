@@ -34,12 +34,12 @@ button:disabled{opacity:.6}
 #barWarn,#barEdit{background:#fde68a;color:#7a2e0e;font-size:14px;font-weight:700;padding:2px 8px;border-radius:6px}
 /* 摘み取りOK */
 .okgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.ok{border-radius:12px;padding:10px 8px;text-align:center;border:2px solid #2f7d4a;background:#eef7f0;color:#1d5c34}
-.ok.ng{border-color:#b42318;background:#fdeeec;color:#8f1d14}
-.ok.unk{border-color:#a16207;background:#fdf6e3;color:#6b4407}
-.ok .h{font-size:18px;font-weight:800}
-.ok .big{font-size:20px;font-weight:800;margin:4px 0;line-height:1.3}
-.ok .why{font-size:12px;line-height:1.4;color:#5b524c}
+.okgrid .ok{border-radius:12px;padding:10px 8px;text-align:center;border:2px solid #2f7d4a;background:#eef7f0;color:#1d5c34}
+.okgrid .ok.ng{border-color:#b42318;background:#fdeeec;color:#8f1d14}
+.okgrid .ok.unk{border-color:#a16207;background:#fdf6e3;color:#6b4407}
+.okgrid .ok .h{font-size:18px;font-weight:800}
+.okgrid .ok .big{font-size:20px;font-weight:800;margin:4px 0;line-height:1.3}
+.okgrid .ok .why{font-size:12px;line-height:1.4;color:#5b524c}
 /* ハウス選び */
 .hsel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .hsel button{padding:12px 4px;font-size:19px;font-weight:800;border:2px solid #bfb2a8;border-radius:10px;background:#fff;color:#5a2a10}
@@ -59,6 +59,20 @@ button:disabled{opacity:.6}
 .chips input{width:18px;height:18px;min-height:18px;padding:0}
 .allopt{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;margin:6px 0 0}
 .allopt input{width:18px;height:18px;min-height:18px;padding:0}
+/* 農薬を選ぶ欄 */
+.pq{margin-top:8px}
+.ptypes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ptypes button{padding:8px 12px;font-size:15px;font-weight:700;border:1px solid #8a3b12;border-radius:20px;background:#fff;color:#8a3b12}
+.ptypes button.on{background:#8a3b12;color:#fff}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:8px;max-height:330px;overflow-y:auto;padding:2px}
+.plist button{min-height:48px;padding:8px 6px;font-size:16px;font-weight:700;line-height:1.25;border:2px solid #d9c9bc;border-radius:10px;background:#fff;color:#2b2622;text-align:left}
+.plist button.on{border-color:#8a3b12;background:#fbf3ee}
+.plist button small{display:block;font-size:11px;font-weight:600;color:#8a3b12}
+.plist .note{grid-column:1/-1}
+.picked{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:10px 12px;border:2px solid #8a3b12;border-radius:10px;background:#fbf3ee}
+.picked span{font-size:13px;color:#6b5f57}
+.picked b{font-size:19px;flex:1}
+.repick{padding:7px 12px;font-size:15px;font-weight:700;border:1px solid #8a3b12;border-radius:8px;background:#fff;color:#8a3b12}
 .confirm{margin-top:14px;padding:10px 12px;border:2px solid #8a3b12;border-radius:9px;font-size:17px;font-weight:700;text-align:center;color:#8a3b12;background:#fbf3ee}
 /* 記録の一覧 */
 .rec{border-bottom:1px solid #eadfd6;padding:10px 0}
@@ -102,6 +116,14 @@ details{margin-top:4px}summary{cursor:pointer;font-weight:650}
 .pestHead{font-size:19px;font-weight:800;margin:0 0 4px}
 .tier{font-size:16px;font-weight:800;color:#8a3b12;margin:12px 0 2px}
 .cand{border-bottom:1px solid #eadfd6;padding:9px 0;font-size:15px;line-height:1.55}
+details.cand{margin:0}
+details.cand>summary{list-style:none;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:40px}
+details.cand>summary::-webkit-details-marker{display:none}
+details.cand>summary::after{content:'▼';margin-left:auto;font-size:12px;color:#8a3b12;padding-left:6px}
+details.cand[open]>summary::after{content:'▲'}
+details.cand>summary .pick{float:none;margin:0 4px 0 0}
+details.cand .body{padding:4px 0 2px 2px}
+.covers{font-size:13px;font-weight:700;color:#1d5c34;margin-left:4px}
 .cand .nm{font-size:17px;font-weight:800}
 .cand .lv{font-weight:800;margin-right:4px}
 .cand.ok .lv{color:#1d5c34}.cand.warn .lv{color:#a16207}.cand.ng .lv{color:#b42318}.cand.ng .nm{color:#8f1d14}
@@ -115,7 +137,7 @@ details{margin-top:4px}summary{cursor:pointer;font-weight:650}
 #planCombo{border:3px solid #8a3b12}
 .addrow{display:grid;grid-template-columns:1fr 90px;gap:8px;margin-top:8px}
 .addrow button{border:1px solid #8a3b12;border-radius:9px;background:#fff;color:#8a3b12;font-size:17px;font-weight:700}
-@media(max-width:520px){body{padding:0 9px 9px}#dateBar{margin:0 -9px;padding:10px 9px}.card{padding:12px}.row{gap:8px}#mainTabs{gap:5px}#mainTabs button{font-size:15px;padding:9px 2px}.ok .big{font-size:17px}}
+@media(max-width:520px){body{padding:0 9px 9px}#dateBar{margin:0 -9px;padding:10px 9px}.card{padding:12px}.row{gap:8px}#mainTabs{gap:5px}#mainTabs button{font-size:15px;padding:9px 2px}.okgrid .ok .big{font-size:17px}}
 </style>
 </head>
 <body>
@@ -183,9 +205,14 @@ details{margin-top:4px}summary{cursor:pointer;font-weight:650}
   <label>退治したい病害虫（いくつでも）</label>
   <div class="chips" id="planPests"></div>
   <div class="addrow"><input id="planPestOther" list="pestList" type="text" placeholder="ほかの病害虫を入力" autocomplete="off"><button type="button" id="planAdd">追加</button></div>
+  <label>展着剤</label>
+  <div class="chips" id="planSpread"></div>
+  <div class="note">農薬を「選ぶ」と、おすすめに自動で印が付きます。自分で替えてもかまいません。</div>
   <label>葉面散布剤（混ぜるなら）</label>
   <div class="chips" id="planFoliar"></div>
   <div class="note" id="planNote"></div>
+  <label for="planQ">候補を名前で探す</label>
+  <input id="planQ" type="search" placeholder="例：せいび、パレード" autocomplete="off">
 </div>
 <div class="card" id="planCombo" style="display:none"></div>
 <div id="planResult"></div>
@@ -655,24 +682,82 @@ function productOptions(selected, all) {
   var anyUse = master.some(function (m) { return m.use || m.fav; });
   var pool = master.filter(function (m) { return all || !anyUse || m.use || m.fav || m.name === selected; });
   function opts(list) { return list.map(function (m) { return '<option' + (m.name === selected ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join(''); }
-  var fav = pool.filter(function (m) { return m.fav; });
+  // 展着剤・葉面散布剤は「よく使う」に混ぜず、いつも別の組にまとめる（探しやすくするため）
+  var SIDE = ['展着剤', '葉面散布剤'], MAIN = ['殺菌剤', '殺虫・殺ダニ剤'];
+  var side = function (m) { return SIDE.indexOf(m.type) >= 0; };
+  var fav = pool.filter(function (m) { return m.fav && !side(m); });
   var html = '<option value="">農薬を選んでください</option>';
   if (fav.length) html += '<optgroup label="よく使う">' + opts(fav) + '</optgroup>';
-  ['殺菌剤', '殺虫・殺ダニ剤'].forEach(function (t) {
+  MAIN.forEach(function (t) {
     var l = pool.filter(function (m) { return m.type === t && !m.fav; });
     if (l.length) html += '<optgroup label="' + t + '">' + opts(l) + '</optgroup>';
   });
-  var rest = pool.filter(function (m) { return !m.fav && m.type !== '殺菌剤' && m.type !== '殺虫・殺ダニ剤'; });
+  SIDE.forEach(function (t) {
+    var l = pool.filter(function (m) { return m.type === t; });
+    l = l.filter(function (m) { return m.fav; }).concat(l.filter(function (m) { return !m.fav; }));
+    if (l.length) html += '<optgroup label="' + t + '">' + opts(l) + '</optgroup>';
+  });
+  var rest = pool.filter(function (m) { return !m.fav && !side(m) && MAIN.indexOf(m.type) < 0; });
   if (rest.length) html += '<optgroup label="その他">' + opts(rest) + '</optgroup>';
   return html;
+}
+// ---- 農薬を選ぶ欄：名前で探す＋種類ボタン（長い一覧で見落とさないように） ----
+var PICK_TYPES = [['fav', 'よく使う'], ['殺菌剤', '殺菌剤'], ['殺虫・殺ダニ剤', '殺虫剤'], ['展着剤', '展着剤'], ['葉面散布剤', '葉面散布剤'], ['etc', 'その他']];
+// ひらがな→カタカナ、全角英数→半角、小文字にそろえる（「くろ」でも「クロ」でも見つかるように）
+function kanaKey(s) {
+  return String(s || '').normalize('NFKC').replace(/[ぁ-ゖ]/g, function (ch) { return String.fromCharCode(ch.charCodeAt(0) + 0x60); }).replace(/\s/g, '').toLowerCase();
+}
+function pickPool(all, selected) {
+  var anyUse = master.some(function (m) { return m.use || m.fav; });
+  return master.filter(function (m) { return all || !anyUse || m.use || m.fav || m.name === selected; });
+}
+function inPickType(m, t) {
+  var side = NO_PHI_TYPES.indexOf(m.type) >= 0, main = m.type === '殺菌剤' || m.type === '殺虫・殺ダニ剤';
+  if (t === 'fav') return m.fav && !side;
+  if (t === 'etc') return !side && !main;
+  return m.type === t;
+}
+function renderPicker(div) {
+  var q = function (c) { return div.querySelector(c); }, s = q('.prod'), cur = s.value;
+  var open = !cur || div.dataset.open === '1';
+  q('.picked').style.display = cur ? '' : 'none';
+  q('.picked').innerHTML = cur ? '<span>選んだ農薬</span><b>' + esc(cur) + '</b><button type="button" class="repick">' + (open ? '閉じる' : '選び直す') + '</button>' : '';
+  q('.pbody').style.display = open ? '' : 'none';
+  if (!open) return;
+  var pool = pickPool(q('.all').checked, cur), key = kanaKey(q('.pq').value), type = div.dataset.ptype || 'fav';
+  var list, note = '';
+  if (key) {
+    list = pool.filter(function (m) { return kanaKey(m.name).indexOf(key) >= 0 || kanaKey(m.ingredient).indexOf(key) >= 0; });
+    if (!list.length) note = q('.all').checked ? '見つかりません。' : '見つかりません。「使わない農薬も一覧に出す」にチェックすると、全部の中から探します。';
+  } else {
+    list = pool.filter(function (m) { return inPickType(m, type); });
+    if (type !== 'fav') list = list.filter(function (m) { return m.fav; }).concat(list.filter(function (m) { return !m.fav; }));
+    if (!list.length) note = 'この種類の農薬はありません。';
+  }
+  q('.ptypes').innerHTML = PICK_TYPES.filter(function (t) { return t[0] === type || pool.some(function (m) { return inPickType(m, t[0]); }); }).map(function (t) {
+    return '<button type="button" data-pt="' + t[0] + '"' + (!key && t[0] === type ? ' class="on"' : '') + '>' + t[1] + '</button>';
+  }).join('');
+  q('.plist').innerHTML = list.map(function (m) {
+    return '<button type="button" data-pn="' + esc(m.name) + '"' + (m.name === cur ? ' class="on"' : '') + '>' + esc(m.name) + (m.fav && type !== 'fav' ? '<small>よく使う</small>' : '') + '</button>';
+  }).join('') + (note ? '<div class="note">' + note + '</div>' : '');
+}
+function pickProduct(div, name) {
+  var s = div.querySelector('.prod');
+  if (!Array.prototype.some.call(s.options, function (o) { return o.value === name; })) { div.querySelector('.all').checked = true; s.innerHTML = productOptions(name, true); }
+  s.value = name; delete div.dataset.open; div.querySelector('.pq').value = '';
+  s.dispatchEvent(new Event('change'));
+  renderPicker(div);
 }
 function addItem(v) {
   v = v || {};
   var n = ++itemSeq, div = document.createElement('div');
   div.className = 'item'; div.dataset.n = n;
   div.innerHTML = '<div class="itemhead"><h3 class="ttl"></h3><button type="button" class="del">この農薬を外す</button></div>' +
-    '<select class="prod" aria-label="農薬">' + productOptions(v.name || '', false) + '</select>' +
-    '<label class="allopt"><input type="checkbox" class="all">使わない農薬も一覧に出す</label>' +
+    '<select class="prod" aria-label="農薬" style="display:none">' + productOptions(v.name || '', false) + '</select>' +
+    '<div class="picked" style="display:none"></div>' +
+    '<div class="pbody"><input class="pq" type="search" placeholder="名前で探す（例：くろぴか）" autocomplete="off" aria-label="農薬の名前で探す">' +
+    '<div class="ptypes"></div><div class="plist"></div>' +
+    '<label class="allopt"><input type="checkbox" class="all">使わない農薬も一覧に出す</label></div>' +
     '<div class="info" style="display:none"></div>' +
     '<div class="dilBox"><label>希釈倍数（倍）</label><input class="dil" type="text" inputmode="decimal" autocomplete="off"><div class="calc"></div></div>' +
     '<div class="amtBox" style="display:none"><label>使用量</label><input class="amt" type="text" autocomplete="off" placeholder="例：1袋、50g"></div>' +
@@ -680,16 +765,25 @@ function addItem(v) {
   $('items').appendChild(div);
   var q = function (c) { return div.querySelector(c); };
   q('.prod').addEventListener('change', function () { q('.dil').value = ''; q('.amt').value = ''; fillItem(div, {}); updateItems(); });
-  q('.all').addEventListener('change', function () { q('.prod').innerHTML = productOptions(q('.prod').value, q('.all').checked); });
+  q('.all').addEventListener('change', function () { q('.prod').innerHTML = productOptions(q('.prod').value, q('.all').checked); renderPicker(div); });
+  q('.pq').addEventListener('input', function () { renderPicker(div); });
+  q('.ptypes').addEventListener('click', function (e) { var b = e.target.closest('[data-pt]'); if (!b) return; div.dataset.ptype = b.dataset.pt; q('.pq').value = ''; renderPicker(div); });
+  q('.plist').addEventListener('click', function (e) { var b = e.target.closest('[data-pn]'); if (b) pickProduct(div, b.dataset.pn); });
+  q('.picked').addEventListener('click', function (e) {
+    if (!e.target.closest('.repick')) return;
+    if (div.dataset.open === '1') delete div.dataset.open; else div.dataset.open = '1';
+    renderPicker(div);
+  });
   q('.dil').addEventListener('input', updateItems);
   q('.chips').addEventListener('change', updateItems);
   q('.tgOther').addEventListener('input', updateItems);
   q('.del').addEventListener('click', function () {
-    if ($('items').children.length <= 1) { q('.prod').value = ''; fillItem(div, {}); updateItems(); return; }
+    if ($('items').children.length <= 1) { q('.prod').value = ''; fillItem(div, {}); renderPicker(div); updateItems(); return; }
     div.remove(); updateItems();
   });
   if (v.name && !byName[v.name]) { q('.all').checked = true; q('.prod').innerHTML = productOptions(v.name, true); }
   fillItem(div, v);
+  renderPicker(div);
   updateItems();
 }
 // 選んだ農薬に合わせて、入力欄と対象の病害虫の候補を作る
@@ -1077,13 +1171,34 @@ function judge(g, m, pest, d, hs) {
     (same.every(function (c) { return /^(M|BM|NC)/.test(c); }) ? '。多作用点などの系統で、耐性の心配は小さいとされます' : '') + '</span>');
   return {name: name, lv: lv, same: same.length > 0, rac: g ? g.rac : (m && m.group) || '不明', lines: lines, g: g, m: m, smoke: !!(best && /くん煙/.test(best.r[4])) || !!(m && /くん煙/.test(m.method))};
 }
-function candHtml(c) {
-  planCands[c.name] = c;
-  var on = planSel.indexOf(c.name) >= 0;
-  return '<div class="cand ' + c.lv + '"><button type="button" class="pick' + (on ? ' on' : '') + '" data-pick="' + esc(c.name) + '">' + (on ? '選択中' : '選ぶ') + '</button><span class="lv">' + LEVEL_TEXT[c.lv] + '</span><span class="nm">' + esc(c.name) + '</span><span class="rac' + (c.same ? ' same' : '') + '">RAC ' + esc(c.rac) + '</span><br>' + c.lines.join('<br>') + '</div>';
+// 候補は1行で出し、押すと詳しい内容が開く（開いたものは描き直しても開いたまま）
+var planOpen = {};
+function candHtml(c, sec) {
+  var on = planSel.indexOf(c.name) >= 0, key = (sec || '') + '|' + c.name;
+  return '<details class="cand ' + c.lv + '" data-ck="' + esc(key) + '"' + (planOpen[key] ? ' open' : '') + '><summary>' +
+    '<button type="button" class="pick' + (on ? ' on' : '') + '" data-pick="' + esc(c.name) + '">' + (on ? '選択中' : '選ぶ') + '</button>' +
+    '<span class="lv">' + LEVEL_TEXT[c.lv] + '</span><span class="nm">' + esc(c.name) + '</span><span class="rac' + (c.same ? ' same' : '') + '">RAC ' + esc(c.rac) + '</span>' +
+    (c.covers ? '<span class="covers">' + esc(c.covers) + '</span>' : '') +
+    '</summary><div class="body">' + c.lines.join('<br>') + '</div></details>';
+}
+// 名前で探す（商品名・同じ農薬の別の名前・成分の名前）
+function candMatch(c, key) {
+  if (!key) return true;
+  var words = [c.name].concat(c.g ? c.g.names.concat([c.g.tname, c.g.type]) : []).concat(c.m ? [c.m.ingredient] : []);
+  return words.some(function (w) { return kanaKey(w).indexOf(key) >= 0; });
 }
 // ---- 散布の計画：組み合わせ（混用・展着剤・葉面散布剤） ----
 var mixData = {ff: [], ii: [], fi: []}, planSel = [], planCands = {}, planFoliar = [];
+// 展着剤：planSpread が null のあいだはアプリのおすすめ（planRec）に従う。自分で選んだらその名前（「入れない」は空）
+var planSpread = null, planRec = '';
+function spreadChoice() { return planSpread === null ? planRec : planSpread; }
+function renderSpread() {
+  var list = master.filter(function (m) { return m.type === '展着剤' && (m.use || m.fav); }), cur = spreadChoice(), any = planSel.length > 0;
+  if (!list.length) { $('planSpread').innerHTML = '<span class="note">読み込み中です。</span>'; return; }
+  $('planSpread').innerHTML = list.map(function (m) {
+    return '<label><input type="radio" name="planSpread" value="' + esc(m.name) + '"' + (cur === m.name ? ' checked' : '') + '>' + esc(m.name) + (any && planRec === m.name ? '（おすすめ）' : '') + '</label>';
+  }).join('') + '<label><input type="radio" name="planSpread" value=""' + (cur === '' ? ' checked' : '') + '>入れない' + (any && planRec === '' ? '（おすすめ）' : '') + '</label>';
+}
 var MIX_SYM = {
   '●': ['ok', '混用して問題なかった'], '◎': ['ok', '使用直前の混用なら問題なかった（作り置きしない）'], '○': ['ok', '凝集するが、よくかき混ぜれば問題なかった'],
   '△': ['warn', '物理性・効果の低下で問題あり'], '▲': ['ng', '薬害の点で問題あり'], '×': ['ng', '混用できない'], 'ー': ['warn', '混用の意味がないか、混用の機会がない']
@@ -1125,7 +1240,7 @@ function isAlkali(c) { return /石灰硫黄|ボルドー|炭酸水素|ハーモ�
 function isOil(c) { return /マシン油|調合油|オイル/.test((c.g ? c.g.type : '') + c.name); }
 function renderCombo() {
   var sel = planSel.map(function (n) { return planCands[n]; }).filter(Boolean);
-  if (!sel.length && !planFoliar.length) { $('planCombo').style.display = 'none'; return; }
+  if (!sel.length && !planFoliar.length) { planRec = ''; renderSpread(); $('planCombo').style.display = 'none'; return; }
   var lines = [], worst = 'ok';
   function add(lv, txt) { lines.push('<div class="mix"><b class="' + lv + '">' + LEVEL_TEXT[lv] + '</b>　' + txt + '</div>'); worst = maxOf(worst, lv); }
   sel.forEach(function (c) { if (c.lv !== 'ok') add(c.lv, esc(c.name) + '：候補の確認で「' + LEVEL_TEXT[c.lv] + '」になっています'); });
@@ -1142,17 +1257,23 @@ function renderCombo() {
     var nm = a.name + b.name;
     if (/ジーファイン/.test(nm) && /ウララ/.test(nm)) add('warn', 'ジーファインを最初に薄め、ウララは最後に加えます（混用表の備考）');
   }
-  // 展着剤
-  var spread = '', why = '';
-  if (smoke.length && sel.length === 1) spread = '';
-  else if (sel.some(function (c) { return /ベネビア/.test(c.name); })) why = 'ベネビアODには展着剤を入れません（混用表の備考）';
+  // 展着剤：まずアプリのおすすめ（rec）を決め、自分で替えたときは注意を出す
+  var rec = '', why = '', benevia = sel.some(function (c) { return /ベネビア/.test(c.name); });
+  if (smoke.length && sel.length === 1) why = 'くん煙剤には展着剤を入れません';
+  else if (benevia) why = 'ベネビアODには展着剤を入れません（混用表の備考）';
   else if (sel.length) {
     var prot = sel.filter(function (c) { return codesOf(c).some(function (x) { return /^M(1|3|4|7)$/.test(x); }); });
-    spread = prot.length ? 'アビオン-E' : 'まくぴか';
+    rec = prot.length ? 'アビオン-E' : 'まくぴか';
     why = prot.length ? esc(prot.map(function (c) { return c.name; }).join('・')) + 'を固着させたいので' : 'いつもの使い分けから';
   }
-  if (spread || why) add(spread ? 'ok' : 'warn', '展着剤：' + (spread ? '<b>' + spread + '</b>（' + why + '）' : why));
-  if (spread && sel.some(function (c) { return /アミスター|ストロビー|コロマイト/.test(c.name); })) add('warn', 'アミスター・ストロビー・コロマイトは、浸透性の展着剤との混用で薬害の恐れがあります。' + spread + 'が当たるかは確認できていません');
+  planRec = rec;
+  var spread = spreadChoice();
+  renderSpread();
+  if (spread && smoke.length) add('ng', '展着剤：<b>' + esc(spread) + '</b>。くん煙剤とは混ぜません');
+  else if (spread && benevia) add('ng', '展着剤：<b>' + esc(spread) + '</b>。ベネビアODには展着剤を入れません（混用表の備考）');
+  else if (spread) add(spread === rec ? 'ok' : 'warn', '展着剤：<b>' + esc(spread) + '</b>' + (spread === rec ? '（' + why + '）' : '（自分で選んだもの。おすすめは' + (rec || '入れない') + (why ? '：' + why : '') + '）'));
+  else if (sel.length) add(rec ? 'warn' : 'ok', '展着剤：入れません' + (rec ? '（おすすめは' + rec + '：' + why + '）' : why ? '（' + why + '）' : ''));
+  if (spread && sel.some(function (c) { return /アミスター|ストロビー|コロマイト/.test(c.name); })) add('warn', 'アミスター・ストロビー・コロマイトは、浸透性の展着剤との混用で薬害の恐れがあります。' + esc(spread) + 'が当たるかは確認できていません');
   if (spread === 'まくぴか' && sel.some(isOil)) add('warn', 'オイル系の農薬とまくぴかは、経験上注意が必要です');
   // 葉面散布剤
   planFoliar.forEach(function (f) {
@@ -1174,7 +1295,7 @@ function renderCombo() {
     (noRec.length ? '<div class="note"><span class="w">' + esc(noRec.map(function (c) { return c.name; }).join('・')) + 'は農薬マスタにないので、記録に入れられません。使うときは名前を教えてください。</span></div>' : '') +
     '<button type="button" class="primary" id="planToRec">この組み合わせを「散布の記録」に入れる</button><button type="button" class="sub" id="planClear">選んだものを外す</button>';
   $('planToRec').addEventListener('click', function () { planToRecord(sel, spread); });
-  $('planClear').addEventListener('click', function () { planSel = []; planFoliar = []; renderPlanInputs(); renderPlan(); });
+  $('planClear').addEventListener('click', function () { planSel = []; planFoliar = []; planSpread = null; renderPlanInputs(); renderPlan(); });
 }
 // 計画を「散布の記録」の入力欄に入れる（保存は記録の画面で）
 function planToRecord(sel, spread) {
@@ -1199,6 +1320,7 @@ function renderPlanInputs() {
   $('planPests').innerHTML = list.map(function (p) { return '<label><input type="checkbox" value="' + esc(p) + '"' + (planPests.indexOf(p) >= 0 ? ' checked' : '') + '>' + esc(p) + '</label>'; }).join('');
   var fol = master.filter(function (m) { return m.type === '葉面散布剤' && (m.use || m.fav); });
   $('planFoliar').innerHTML = fol.length ? fol.map(function (m) { return '<label><input type="checkbox" value="' + esc(m.name) + '"' + (planFoliar.indexOf(m.name) >= 0 ? ' checked' : '') + '>' + esc(m.name) + '</label>'; }).join('') : '<span class="note">読み込み中です。</span>';
+  renderSpread();
 }
 function renderPlan() {
   if (!$('planDate').value) return;
@@ -1210,7 +1332,8 @@ function renderPlan() {
   $('planNote').textContent = notes.join('');
   planCands = {};
   if (!planPests.length) { $('planResult').innerHTML = ''; renderCombo(); return; }
-  $('planResult').innerHTML = planPests.map(function (pest) {
+  var key = kanaKey($('planQ').value);
+  var per = planPests.map(function (pest) {
     var mine = [], others = [], usedGroups = [];
     master.forEach(function (m) {
       if (!(m.use || m.fav) || noPhi(m)) return;
@@ -1226,19 +1349,53 @@ function renderPlan() {
       others.push(c);
     });
     sortCands(mine); sortCands(others);
+    mine.concat(others).forEach(function (c) { planCands[c.name] = c; });
+    return {pest: pest, mine: mine, others: others};
+  });
+  // 選んだ病害虫の2つ以上に登録がある農薬（いつもの候補から）。判定は一番きびしいものに合わせる
+  var multi = [];
+  if (planPests.length >= 2) {
+    var by = {}, order = [];
+    per.forEach(function (p) { p.mine.forEach(function (c) {
+      if (!by[c.name]) { by[c.name] = []; order.push(c.name); }
+      by[c.name].push({pest: p.pest, c: c});
+    }); });
+    order.forEach(function (n) {
+      var list = by[n]; if (list.length < 2) return;
+      var lines = [], lv = 'ok';
+      list.forEach(function (x) { lv = maxOf(lv, x.c.lv); if (lines.indexOf(x.c.lines[0]) < 0) lines.push(x.c.lines[0]); });
+      list.forEach(function (x) { x.c.lines.slice(1).forEach(function (l) { if (lines.indexOf(l) < 0) lines.push(l); }); });
+      var c = {}; for (var k in list[0].c) c[k] = list[0].c[k];
+      c.lv = lv; c.lines = lines; c.n = list.length; c.covers = list.map(function (x) { return x.pest; }).join('・') + 'に効く';
+      multi.push(c); planCands[n] = c;
+    });
+    multi.sort(function (x, y) { return y.n - x.n || LEVEL[x.lv] - LEVEL[y.lv] || (x.same - y.same) || x.name.localeCompare(y.name, 'ja'); });
+  }
+  var shown = function (a) { return a.filter(function (c) { return candMatch(c, key); }); };
+  var html = '';
+  if (planPests.length >= 2) {
+    var mm = shown(multi);
+    html += '<div class="card"><div class="pestHead">2つ以上に効く農薬（いつもの候補）</div>' +
+      (mm.length ? mm.map(function (c) { return candHtml(c, 'multi'); }).join('') : '<div class="note">' + (key ? '名前に合う農薬はありません。' : '選んだ病害虫の2つ以上に登録がある農薬はありませんでした。') + '</div>') + '</div>';
+  }
+  html += per.map(function (p) {
+    var mine = shown(p.mine), others = shown(p.others);
     var okN = others.filter(function (c) { return c.lv !== 'ng'; }).length;
-    return '<div class="card"><div class="pestHead">' + esc(pest) + '</div>' +
-      '<div class="tier">いつもの候補（' + mine.length + '）</div>' + (mine.length ? mine.map(candHtml).join('') : '<div class="note">「使う」「よく使う」の農薬には見つかりませんでした。</div>') +
-      '<details><summary class="tier">試す価値があるかもしれない候補（' + okN + '／' + others.length + '）</summary><div class="note">いちごに登録があり、まだ使っていない農薬です。効果は分かりません。影響日数などの資料がないものが多いので、使う前に詳しく調べます。</div>' +
-      others.map(candHtml).join('') + '</details></div>';
+    return '<div class="card"><div class="pestHead">' + esc(p.pest) + '</div>' +
+      '<div class="tier">いつもの候補（' + mine.length + (key ? '／' + p.mine.length : '') + '）</div>' +
+      (mine.length ? mine.map(function (c) { return candHtml(c, p.pest); }).join('') : '<div class="note">' + (key ? '名前に合う農薬はありません。' : '「使う」「よく使う」の農薬には見つかりませんでした。') + '</div>') +
+      '<details class="more"' + (key && others.length ? ' open' : '') + '><summary class="tier">試す価値があるかもしれない候補（' + okN + '／' + others.length + '）</summary><div class="note">いちごに登録があり、まだ使っていない農薬です。効果は分かりません。影響日数などの資料がないものが多いので、使う前に詳しく調べます。</div>' +
+      others.map(function (c) { return candHtml(c, p.pest + '+'); }).join('') + '</details></div>';
   }).join('');
+  var moreOpen = Array.prototype.map.call(document.querySelectorAll('#planResult details.more'), function (x) { return x.open; });
+  $('planResult').innerHTML = html;
+  if (!key) document.querySelectorAll('#planResult details.more').forEach(function (x, k) { if (moreOpen[k]) x.open = true; });
   document.querySelectorAll('[data-pick]').forEach(function (b) {
-    b.addEventListener('click', function () {
+    b.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation(); // 1行を開け閉めしない
       var n = b.dataset.pick, i = planSel.indexOf(n);
       if (i >= 0) planSel.splice(i, 1); else planSel.push(n);
-      var open = Array.prototype.map.call(document.querySelectorAll('#planResult details'), function (d) { return d.open; });
       renderPlan();
-      document.querySelectorAll('#planResult details').forEach(function (d, k) { d.open = !!open[k]; });
     });
   });
   planSel = planSel.filter(function (n) { return planCands[n]; });
@@ -1255,6 +1412,7 @@ function apply(d) {
   Array.prototype.forEach.call(document.querySelectorAll('#items .item'), function (div) {
     var s = div.querySelector('.prod'), a = div.querySelector('.all'), v = s.value;
     s.innerHTML = productOptions(v, a.checked);
+    renderPicker(div);
   });
   if (!$('items').children.length) addItem();
   renderOk(); renderBee(); renderIntro(); renderPestList(); renderSearch(); renderList(); renderMemos(); renderCounts(); updateItems(); renderPlanInputs(); renderPlan();
@@ -1330,6 +1488,9 @@ $('planPests').addEventListener('change', function () {
   planPests = Array.prototype.map.call(document.querySelectorAll('#planPests input:checked'), function (c) { return c.value; });
   renderPlan();
 });
+$('planSpread').addEventListener('change', function (e) { planSpread = e.target.value; renderCombo(); });
+$('planQ').addEventListener('input', renderPlan);
+$('planResult').addEventListener('toggle', function (e) { if (e.target.matches && e.target.matches('details.cand')) planOpen[e.target.dataset.ck] = e.target.open; }, true);
 $('planFoliar').addEventListener('change', function () {
   planFoliar = Array.prototype.map.call(document.querySelectorAll('#planFoliar input:checked'), function (c) { return c.value; });
   renderCombo();
