@@ -44,6 +44,11 @@ button:disabled{opacity:.6}
 .hsel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .hsel button{padding:12px 4px;font-size:19px;font-weight:800;border:2px solid #bfb2a8;border-radius:10px;background:#fff;color:#5a2a10}
 .hsel button.on{background:#8a3b12;border-color:#8a3b12;color:#fff}
+#hsel{grid-template-columns:repeat(4,1fr)}
+#preNote{margin-top:6px}#preNote .w{color:#b42318;font-weight:700}
+.mbtns{display:flex;gap:6px}
+.mbtns button{flex:1;padding:9px;font-size:16px;font-weight:700;border:1px solid #8a3b12;border-radius:9px;background:#fff;color:#8a3b12}
+.mbtns button.on{background:#8a3b12;color:#fff}
 .vols{margin-top:8px}
 .vol{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:8px;margin-top:6px}
 .vol b{font-size:18px}
@@ -167,6 +172,7 @@ details.cand .body{padding:4px 0 2px 2px}
   <label for="date">散布日</label><input id="date" type="date">
   <label>ハウス（何棟かまとめて選べます）</label>
   <div class="hsel" id="hsel"></div>
+  <div class="note" id="preNote" style="display:none"></div>
   <label for="totalVol">散布液量の合計（L）</label>
   <input id="totalVol" type="text" inputmode="decimal" placeholder="選んだハウス全部で何リットルか" autocomplete="off">
   <div class="note">わからなければ空欄で大丈夫です。</div>
@@ -313,6 +319,11 @@ details.cand .body{padding:4px 0 2px 2px}
 // 保存先（GAS のウェブアプリのアドレス）
 var API_URL = 'https://script.google.com/macros/s/AKfycbw2HVI7LLcoS1qIYgT9wU39YAjYBUKt8TssLS5H0OLP4vOPg34ycLIjkqDEV9Dtnxhtkw/exec';
 var HOUSE_LIST = ['0番', '2番', '3番'];
+// 定植前（育苗中）の散布。全部のハウスに散布したものとして数える（育苗期の農薬の影響は全部の本圃に及ぶ。本人の決定 2026-11-07）
+var PRE = '定植前';
+function onHouse(s, h) { return s.house === h || s.house === PRE; }
+function realHouses(hs) { return hs.indexOf(PRE) >= 0 ? HOUSE_LIST.slice() : hs; }
+var USE_METHODS = ['散布', '灌注'];
 var DILUTE = ['散布', '灌注', '添加'];
 var NO_PHI_TYPES = ['展着剤', '葉面散布剤'];
 var IMPACT = ['ミツバチ', 'マルハナバチ', 'チリカブリダニ', 'ミヤコカブリダニ', 'ククメリス', 'クイーンフライ'];
@@ -401,9 +412,10 @@ function renderOk() {
   HOUSE_LIST.forEach(function (h) {
     var best = null, unknown = [];
     sprays.forEach(function (s) {
-      if (s.house !== h || s.date > t) return;
+      if (!onHouse(s, h) || s.date > t) return;
       var m = byName[s.name];
       if (noPhi(m)) return;
+      if (s.house === PRE && (!m || m.phi === null)) return; // 定植前にしか使えない農薬は摘み取りに関係しない
       if (!m || m.phi === null) { if (s.date >= addDays(t, -90)) unknown.push(s); return; }
       var ok = addDays(s.date, m.phi);
       if (s.date >= addDays(t, -90) && m.status !== '確認済み') unconf = true;
@@ -416,7 +428,7 @@ function renderOk() {
       why = md(best.s.date) + ' ' + best.s.name + '（' + (phi === 1 ? '収穫前日まで' : '収穫' + phi + '日前まで') + '）';
     } else {
       big = '摘み取りOK';
-      var last = sprays.filter(function (s) { return s.house === h && s.date <= t; }).sort(function (a, b) { return b.date.localeCompare(a.date); })[0];
+      var last = sprays.filter(function (s) { return onHouse(s, h) && s.date <= t; }).sort(function (a, b) { return b.date.localeCompare(a.date); })[0];
       why = last ? '最後の散布：' + md(last.date) + ' ' + last.name : '';
       // 記録がないだけのときは「OK」と言わない（これまでの散布を入力すると計算できる）
       if (!last) { cls = 'ok unk'; big = '記録なし'; why = 'これまでの散布を入力すると計算します'; }
@@ -448,7 +460,7 @@ function inUse(h, sp, d) { return intros.some(function (i) { return i.house === 
 function beeStatus(h, sp, t) {
   var r = {until: '', more: false, name: '', long: [], unknown: []};
   sprays.forEach(function (s) {
-    if (s.house !== h || s.date > t) return;
+    if (!onHouse(s, h) || s.date > t) return;
     var m = byName[s.name], p = parseImpact(m ? m.impact[sp] : '');
     if (p.k === 'unk') { if (s.date >= addDays(t, -30) && !noPhi(m)) r.unknown.push(s.name); return; }
     if (p.k === 'long' || p.k === 'avoid') { if (s.date >= addDays(t, -120)) r.long.push(s.name); return; }
@@ -511,7 +523,7 @@ function pestMatch(p, q) {
 function recentFor(q, houses, d) {
   var from = addDays(d, -lookback), seen = {}, out = [];
   sprays.forEach(function (s) {
-    if (s.date < from || s.date > d || s.id === editId || (houses && houses.length && houses.indexOf(s.house) < 0)) return;
+    if (s.date < from || s.date > d || s.id === editId || (houses && houses.length && !houses.some(function (h) { return onHouse(s, h); }))) return;
     var m = byName[s.name], key = s.date + '|' + s.house + '|' + s.name;
     if (!m || seen[key]) return;
     var own = targetList(m).filter(function (p) { return pestMatch(p, q); });
@@ -658,12 +670,18 @@ function renderMemos() {
 // ---- 入力：ハウス ----
 var houseOn = {};
 function renderHouses() {
-  $('hsel').innerHTML = HOUSE_LIST.map(function (h) { return '<button type="button" data-h="' + h + '"' + (houseOn[h] ? ' class="on"' : '') + '>' + h + '</button>'; }).join('');
+  $('hsel').innerHTML = HOUSE_LIST.concat([PRE]).map(function (h) { return '<button type="button" data-h="' + h + '"' + (houseOn[h] ? ' class="on"' : '') + '>' + h + '</button>'; }).join('');
   document.querySelectorAll('#hsel button').forEach(function (b) {
-    b.addEventListener('click', function () { houseOn[b.dataset.h] = !houseOn[b.dataset.h]; renderHouses(); updateItems(); });
+    b.addEventListener('click', function () {
+      var h = b.dataset.h;
+      // 「定植前」とハウスは一緒に選ばない
+      if (h === PRE) houseOn = houseOn[PRE] ? {} : (function () { var o = {}; o[PRE] = true; return o; })();
+      else { delete houseOn[PRE]; houseOn[h] = !houseOn[h]; }
+      renderHouses(); updateItems();
+    });
   });
 }
-function selectedHouses() { return HOUSE_LIST.filter(function (h) { return houseOn[h]; }); }
+function selectedHouses() { return houseOn[PRE] ? [PRE] : HOUSE_LIST.filter(function (h) { return houseOn[h]; }); }
 
 // ---- 入力：散布した人 ----
 function renderSprayers(keep) {
@@ -758,13 +776,18 @@ function addItem(v) {
     '<div class="pbody"><input class="pq" type="search" placeholder="名前で探す（例：くろぴか）" autocomplete="off" aria-label="農薬の名前で探す">' +
     '<div class="ptypes"></div><div class="plist"></div>' +
     '<label class="allopt"><input type="checkbox" class="all">使わない農薬も一覧に出す</label></div>' +
+    '<div class="mBox" style="display:none"><label>使い方</label><div class="mbtns"></div></div>' +
     '<div class="info" style="display:none"></div>' +
     '<div class="dilBox"><label>希釈倍数（倍）</label><input class="dil" type="text" inputmode="decimal" autocomplete="off"><div class="calc"></div></div>' +
     '<div class="amtBox" style="display:none"><label>使用量</label><input class="amt" type="text" autocomplete="off" placeholder="例：1袋、50g"></div>' +
     '<div class="tgBox" style="display:none"><label>対象の病害虫</label><div class="chips"></div><input class="tgOther" type="text" placeholder="その他（あれば入力。いくつかあるときは「、」で区切る）" autocomplete="off" style="margin-top:8px"><div class="dup" style="display:none"></div></div>';
   $('items').appendChild(div);
   var q = function (c) { return div.querySelector(c); };
-  q('.prod').addEventListener('change', function () { q('.dil').value = ''; q('.amt').value = ''; fillItem(div, {}); updateItems(); });
+  q('.prod').addEventListener('change', function () { q('.dil').value = ''; q('.amt').value = ''; delete div.dataset.method; fillItem(div, {}); updateItems(); });
+  q('.mbtns').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-m]'); if (!b) return;
+    div.dataset.method = b.dataset.m; fillItem(div, {keep: true}); updateItems();
+  });
   q('.all').addEventListener('change', function () { q('.prod').innerHTML = productOptions(q('.prod').value, q('.all').checked); renderPicker(div); });
   q('.pq').addEventListener('input', function () { renderPicker(div); });
   q('.ptypes').addEventListener('click', function (e) { var b = e.target.closest('[data-pt]'); if (!b) return; div.dataset.ptype = b.dataset.pt; q('.pq').value = ''; renderPicker(div); });
@@ -786,15 +809,38 @@ function addItem(v) {
   renderPicker(div);
   updateItems();
 }
+// 散布と灌注の両方の登録がある農薬（例：モベント）は、記録ごとに使い方を選ぶ
+function methodsOf(m) {
+  if (!m || USE_METHODS.indexOf(m.method) < 0) return m ? [m.method] : [];
+  var g = typeof regOf === 'function' ? regOf(m) : null, list = [m.method];
+  (g ? g.rows : []).forEach(function (r) { if (USE_METHODS.indexOf(r[4]) >= 0 && list.indexOf(r[4]) < 0) list.push(r[4]); });
+  return list;
+}
+function methodOf(div, m) { var x = div.dataset.method; return x && methodsOf(m).indexOf(x) >= 0 ? x : m.method; }
+// 登録の中から、その使い方の倍率・使用時期・回数を取り出す
+function methodReg(m, method) {
+  var g = typeof regOf === 'function' ? regOf(m) : null;
+  if (!g) return null;
+  var rows = g.rows.filter(function (r) { return r[4] === method; });
+  if (!rows.length) return null;
+  var uniq = function (i) { return rows.map(function (r) { return r[i]; }).filter(function (x, k, a) { return x && a.indexOf(x) === k; }).join('・'); };
+  return {dil: uniq(1), timing: uniq(2), times: uniq(3)};
+}
 // 選んだ農薬に合わせて、入力欄と対象の病害虫の候補を作る
 function fillItem(div, v) {
   var q = function (c) { return div.querySelector(c); }, m = byName[q('.prod').value];
+  if (v && v.method) div.dataset.method = v.method;
   q('.info').style.display = m ? '' : 'none';
   q('.tgBox').style.display = m ? '' : 'none';
   q('.dilBox').style.display = !m || isDilute(m) ? '' : 'none';
   q('.amtBox').style.display = m && !isDilute(m) ? '' : 'none';
+  var ms = methodsOf(m);
+  q('.mBox').style.display = ms.length > 1 ? '' : 'none';
+  q('.mbtns').innerHTML = ms.length > 1 ? ms.map(function (x) { return '<button type="button" data-m="' + x + '"' + (x === methodOf(div, m) ? ' class="on"' : '') + '>' + x + '</button>'; }).join('') : '';
   if (!m) { q('.dil').placeholder = ''; return; }
-  q('.dil').placeholder = '表：' + m.dilutionText;
+  var mr = methodOf(div, m) !== m.method ? methodReg(m, methodOf(div, m)) : null;
+  q('.dil').placeholder = '表：' + (mr ? mr.dil : m.dilutionText);
+  if (v && v.keep) return;
   if (v.dilution != null) q('.dil').value = v.dilution;
   if (v.amount) q('.amt').value = v.amount;
   q('.amt').placeholder = '表：' + m.dilutionText;
@@ -808,13 +854,18 @@ function seasonCount(part, house, d) {
   var st = seasonStart(d), lo = st, hi = addDays(st, 364), ids = {};
   if (isSplit(part, d)) { if (d < plantStart) hi = addDays(plantStart, -1); else lo = plantStart; }
   sprays.forEach(function (s) {
-    if (s.house !== house || s.id === editId || s.date < lo || s.date > hi) return;
+    if (!onHouse(s, house) || s.id === editId || s.date < lo || s.date > hi) return;
     if (countParts(s.name).some(function (p) { return p.key === part.key; })) ids[s.id + '|' + s.name] = 1;
   });
   return Object.keys(ids).length;
 }
 function updateItems() {
-  var d = $('date').value || today(), hs = selectedHouses();
+  var d = $('date').value || today(), hs = realHouses(selectedHouses());
+  // 定植前を選んだのに、定植が終わった日より後のとき
+  var pre = houseOn[PRE] && plantEnd && d > plantEnd;
+  $('preNote').style.display = houseOn[PRE] ? '' : 'none';
+  $('preNote').innerHTML = !houseOn[PRE] ? '' : pre ? '<span class="w">定植が終わった日（' + md(plantEnd) + '）より後の日付です。定植前でよいか確かめてください。</span>' :
+    '定植前（育苗中）の散布は、全部のハウス（' + HOUSE_LIST.join('・') + '）に散布したものとして回数・ハチ天敵の影響を数えます。';
   Array.prototype.forEach.call(document.querySelectorAll('#items .item'), function (div, i) {
     var q = function (c) { return div.querySelector(c); }, m = byName[q('.prod').value];
     q('.ttl').textContent = (i + 1) + '種類目';
@@ -824,8 +875,10 @@ function updateItems() {
     });
     var warns = [];
     hs.forEach(function (h) { IMPACT.forEach(function (sp) { if (inUse(h, sp, d)) { var w = beeWarn(m, h, sp, d); if (w) warns.push(w); } }); });
+    var meth = methodOf(div, m), mr = meth !== m.method ? methodReg(m, meth) : null;
     var info ='<b>' + esc(m.name) + '</b>（' + esc(m.type) + '・系統 ' + esc(m.group || '—') + '）<br>' +
-      '使用時期：' + esc(m.timing || '—') + '　使用回数：' + esc(m.timesText || '—') +
+      (methodsOf(m).length > 1 ? '使い方：<b>' + esc(meth) + '</b>' + (mr ? '（登録：' + esc(mr.dil) + '）' : '') + '<br>' : '') +
+      '使用時期：' + esc((mr ? mr.timing : m.timing) || '—') + '　使用回数：' + esc((mr ? mr.times + '（総使用回数 ' + (m.total || '—') + '）' : m.timesText) || '—') +
       (noPhi(m) ? '' : m.phi !== null ? '　→ 散布後 <b>' + m.phi + '日</b>で摘み取りOK' : '　→ <span class="w">収穫前日数では決められません。使用時期を確認してください</span>');
     if (m.note) info += '<br>注意：' + esc(m.note);
     info += '<br>ハチ・天敵への影響（目安）：' + esc(imp.join('、'));
@@ -892,7 +945,7 @@ function collect() {
     if (isDilute(m) && !(dil > 0)) err = err || m.name + 'の希釈倍数を入れてください。';
     var tg = Array.prototype.map.call(div.querySelectorAll('.chips input:checked'), function (c) { return c.value; })
       .concat(q('.tgOther').value.split(/[、,，]/).map(function (s) { return s.trim(); }).filter(String));
-    items.push({name: m.name, dilution: dil, amount: isDilute(m) ? '' : q('.amt').value.trim(), targets: tg});
+    items.push({name: m.name, dilution: dil, amount: isDilute(m) ? '' : q('.amt').value.trim(), targets: tg, method: methodOf(div, m)});
   });
   if (!items.length) err = err || '農薬を選んでください。';
   return {err: err, data: {id: editId, date: d, houses: houses, items: items, sprayer: sprayerName(), memo: $('memo').value.trim(),
@@ -903,16 +956,18 @@ function save() {
   var c = collect();
   if (c.err) return setStatus(c.err, true);
   var over = [], unreg = [], bee = [], past = [];
+  var hsReal = realHouses(c.data.houses.map(function (h) { return h.house; }));
+  if (houseOn[PRE] && plantEnd && c.data.date > plantEnd && !confirm('定植が終わった日（' + md(plantEnd) + '）より後の日付です。\n「定植前」で保存しますか？')) return;
   c.data.items.forEach(function (it) {
     if (byName[it.name].status === '要確認') unreg.push(it.name);
     memoNotes(it.name, c.data.items.map(function (i) { return i.name; }), c.data.dry).strong.forEach(function (t) { if (past.indexOf(t) < 0) past.push(t); });
-    c.data.houses.forEach(function (h) { IMPACT.forEach(function (sp) {
-      if (inUse(h.house, sp, c.data.date)) { var w = beeWarn(byName[it.name], h.house, sp, c.data.date); if (w) bee.push(it.name + '　' + w); }
+    hsReal.forEach(function (h) { IMPACT.forEach(function (sp) {
+      if (inUse(h, sp, c.data.date)) { var w = beeWarn(byName[it.name], h, sp, c.data.date); if (w) bee.push(it.name + '　' + w); }
     }); });
     countParts(it.name).forEach(function (p) {
       var lim = limitOf(p, c.data.date);
       if (lim === null) return;
-      c.data.houses.forEach(function (h) { if (seasonCount(p, h.house, c.data.date) + 1 > lim) over.push(h.house + ' ' + it.name + '（' + p.label + '）'); });
+      hsReal.forEach(function (h) { if (seasonCount(p, h, c.data.date) + 1 > lim) over.push(h + ' ' + it.name + '（' + p.label + '）'); });
     });
   });
   if (unreg.length && !confirm('次の農薬は登録の確認が必要です。\n' + unreg.join('\n') + '\n\n本当に保存しますか？')) return;
@@ -952,7 +1007,7 @@ function startEdit(id) {
   $('cWeather').value = rows[0].weather || ''; $('cDry').value = rows[0].dry || '';
   $('items').innerHTML = '';
   var first = rows[0].house;
-  rows.filter(function (s) { return s.house === first; }).forEach(function (s) { addItem({name: s.name, dilution: s.dilution, amount: s.amount, targets: s.targets}); });
+  rows.filter(function (s) { return s.house === first; }).forEach(function (s) { addItem({name: s.name, dilution: s.dilution, amount: s.amount, targets: s.targets, method: s.method}); });
   $('formTitle').textContent = '散布の記録を修正'; $('cancelEdit').style.display = '';
   setBusy(false); setStatus('');
   updateItems();
@@ -979,13 +1034,13 @@ function groups() {
   return order.map(function (id) { return g[id]; }).sort(function (a, b) { return b[0].date.localeCompare(a[0].date) || b[0].id.localeCompare(a[0].id); });
 }
 function renderList() {
-  var all = groups().filter(function (rows) { return !listHouse || rows.some(function (s) { return s.house === listHouse; }); });
+  var all = groups().filter(function (rows) { return !listHouse || rows.some(function (s) { return onHouse(s, listHouse); }); });
   $('list').innerHTML = all.slice(0, listLimit).map(function (rows) {
     var hs = rows.map(function (s) { return s.house; }).filter(function (h, i, a) { return a.indexOf(h) === i; }).sort();
     var first = rows.filter(function (s) { return s.house === hs[0]; });
     var items = first.map(function (s) {
       var a = s.dilution ? fmt(s.dilution) + '倍' : s.amount;
-      return '・' + esc(s.name) + (a ? ' ' + esc(a) : '') + (s.targets ? '（' + esc(s.targets) + '）' : '');
+      return '・' + esc(s.name) + (s.method === '灌注' ? '（灌注）' : '') + (a ? ' ' + esc(a) : '') + (s.targets ? '（' + esc(s.targets) + '）' : '');
     }).join('<br>');
     var tot = rowsTotal(rows), vols = tot === null ? '' : '合計 ' + fmt(tot) + 'L';
     var nMemo = memos.filter(function (x) { return x.sprayId === rows[0].id; }).length, cd = condText(rows[0]);
@@ -1011,7 +1066,7 @@ function renderCounts() {
       var lim = limitOf(p, s.date);
       if (!rows[k]) { rows[k] = {label: p.label + (split ? (pre ? '（定植前）' : '（定植後）') : ''), names: {}, ids: {}, max: null, last: ''}; order.push(k); }
       rows[k].names[s.name] = 1;
-      rows[k].ids[s.house + '|' + s.id + '|' + s.name] = s.house;
+      (s.house === PRE ? HOUSE_LIST : [s.house]).forEach(function (h) { rows[k].ids[h + '|' + s.id + '|' + s.name] = h; });
       if (lim !== null && (rows[k].max === null || lim > rows[k].max)) rows[k].max = lim;
       if (s.date > rows[k].last) rows[k].last = s.date;
     });
@@ -1037,7 +1092,12 @@ var PEST_CHIPS = ['ハダニ類', 'アザミウマ類', 'アブラムシ類', '�
 var LEVEL = {ok: 0, warn: 1, ng: 2}, LEVEL_TEXT = {ok: '使えます', warn: '確認が必要', ng: '使えません'};
 function loadRegistered() {
   return fetch('registered.json').then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
-    .then(function (j) { registered = j; renderPlan(); }, function () { $('planNote').textContent = '登録農薬の一覧を読み込めませんでした。'; });
+    .then(function (j) {
+      registered = j; renderPlan();
+      // 使い方（散布・灌注）のボタンは登録の一覧を使うので、読み込めたら出し直す
+      document.querySelectorAll('#items .item').forEach(function (div) { fillItem(div, {keep: true}); });
+      updateItems();
+    }, function () { $('planNote').textContent = '登録農薬の一覧を読み込めませんでした。'; });
 }
 function regKey(s) { return String(s || '').replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).replace(/\D/g, ''); }
 // 農薬マスタの商品が、登録農薬のどれに当たるか（登録番号、なければ名前で探す）
@@ -1060,7 +1120,7 @@ function racOfName(name) { var m = byName[name], g = regOf(m); return g ? g.rac 
 function sameKind(a, b) { return (/菌/.test(a) && /菌/.test(b)) || (/虫/.test(a) && /虫/.test(b)); }
 // 前回（同じ殺菌・殺虫の散布）の RAC
 function lastRac(hs, d, kind) {
-  var g = groups().filter(function (rows) { return rows[0].date <= d && rows.some(function (s) { return hs.indexOf(s.house) >= 0; }); });
+  var g = groups().filter(function (rows) { return rows[0].date <= d && rows.some(function (s) { return hs.some(function (h) { return onHouse(s, h); }); }); });
   for (var i = 0; i < g.length; i++) {
     var names = g[i].map(function (s) { return s.name; }).filter(function (n, j, a) { return a.indexOf(n) === j && !noPhi(byName[n]) && sameKind(kindOf(n), kind); });
     var codes = [];
@@ -1072,7 +1132,7 @@ function lastRac(hs, d, kind) {
 // 今の摘み取りOKの日（そのハウスの散布から）
 function currentOk(h, d) {
   var ok = '';
-  sprays.forEach(function (s) { if (s.house !== h || s.date > d) return; var m = byName[s.name]; if (!m || noPhi(m) || m.phi === null) return; var o = addDays(s.date, m.phi); if (o > ok) ok = o; });
+  sprays.forEach(function (s) { if (!onHouse(s, h) || s.date > d) return; var m = byName[s.name]; if (!m || noPhi(m) || m.phi === null) return; var o = addDays(s.date, m.phi); if (o > ok) ok = o; });
   return ok;
 }
 function phiOf(text) {
@@ -1095,7 +1155,7 @@ function timingCheck(text, d) {
     var last = addDays(harvestStart, -Number(st[1]));
     return d <= last ? {k: 'ok', msg: '収穫開始' + st[1] + '日前まで（' + md(last) + 'まで使えます）'} : {k: 'ng', msg: '収穫開始' + st[1] + '日前（' + md(last) + '）を過ぎています'};
   }
-  if (/育苗期|仮植|定植前|定植当日|定植時/.test(t) && !/収穫前日|生育期/.test(t)) {
+  if (/育苗期|育苗時|仮植|定植前|定植当日|定植時/.test(t) && !/収穫前日|生育期/.test(t)) {
     if (!plantStart) return {k: 'warn', msg: '使用時期「' + t + '」（定植日が未入力なので判定できません）'};
     if (/定植時/.test(t) && !/育苗|定植前|当日/.test(t)) return d >= plantStart && d <= (plantEnd || plantStart) ? {k: 'warn', msg: '定植時の使用です。そのハウスの定植日か確認してください'} : {k: 'ng', msg: '定植時だけ使える農薬です'};
     if (d < plantStart) return {k: 'ok', msg: '使用時期：' + t};
