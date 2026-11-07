@@ -1268,7 +1268,9 @@ var MIX_SYM = {
 var FOLIAR_RULE = {
   'ランセットN': {copper: 1, alkali: 1, hot: 1, note: '薬害の出やすい農薬との混用は避ける（メーカー）'},
   'クロピカα': {copper: 1, alkali: 1, hot: 1}, 'グルタス': {copper: 1, alkali: 1}, 'ジャットキング': {copper: 1, alkali: 1, hot: 1},
-  'エキカル': {copper: 1, alkali: 1}, 'タスカル': {pesticide: 1}, 'バイクロセブン': {}
+  'エキカル': {copper: 1, alkali: 1}, 'タスカル': {pesticide: 1}, 'バイクロセブン': {},
+  // 生産業者保証票（本人の写真 2026-11-07）。倍率・pH・ほかの混用の注意は未確認
+  'NアップG-Ⅲ': {lime: 1, note: 'りん酸を含む液状肥料。倍率・ほかの混用の注意は未確認（保証票だけ）'}
 };
 // 表の中から農薬の位置を探す（農薬マスタの名前、なければ表の名前の頭の一致）
 function mixIndex(names, masters, c) {
@@ -1344,11 +1346,14 @@ function renderCombo() {
     if (r.pesticide && sel.length) bad.push('農薬とは混ぜない（メーカー）');
     if (r.copper) sel.forEach(function (c) { if (isCopper(c)) bad.push(c.name + '（銅剤）とは混ぜない（メーカー）'); });
     if (r.alkali) sel.forEach(function (c) { if (isAlkali(c)) bad.push(c.name + '（アルカリ性）とは混ぜない（メーカー）'); });
+    if (r.lime) sel.forEach(function (c) { if (/石灰硫黄/.test((c.g ? c.g.type : '') + c.name)) bad.push(c.name + '（石灰硫黄合剤）とは混ぜない。有毒ガスの恐れ（保証票）'); });
     if (bad.length) add('ng', esc(f) + '：' + esc(bad.join('、')));
     else add('ok', esc(f) + '：メーカーの注意には当たりません（混用の事例ではありません）' + (r.note ? '。' + esc(r.note) : ''));
     if (r.hot) add('warn', esc(f) + '：高温の時間帯や日差しの強いときの葉面散布は避けます（メーカー）');
   });
-  if (planFoliar.indexOf('ランセットN') >= 0 && planFoliar.some(function (f) { return f === 'エキカル' || f === 'タスカル'; })) add('ng', 'ランセットN（りん酸を含む）と、エキカル・タスカル（カルシウム）は混ぜません（メーカー）');
+  // りん酸を含む液肥（ランセットN・NアップG-Ⅲ）とカルシウム剤（エキカル・タスカル）は混ぜない（エキカル・タスカルのメーカーの注意）
+  var phos = planFoliar.filter(function (f) { return f === 'ランセットN' || f === 'NアップG-Ⅲ'; });
+  if (phos.length && planFoliar.some(function (f) { return f === 'エキカル' || f === 'タスカル'; })) add('ng', phos.join('・') + '（りん酸を含む）と、エキカル・タスカル（カルシウム）は混ぜません（メーカー）');
   var noRec = sel.filter(function (c) { return !c.m; });
   $('planCombo').style.display = '';
   $('planCombo').innerHTML = '<h2>選んだ組み合わせ</h2><div class="note">' + esc(sel.map(function (c) { return c.name; }).concat(planFoliar).join('＋') || '—') + '</div>' + lines.join('') +
