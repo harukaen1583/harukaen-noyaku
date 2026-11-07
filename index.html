@@ -749,9 +749,10 @@ function renderPicker(div) {
     if (!list.length) note = q('.all').checked ? '見つかりません。' : '見つかりません。「使わない農薬も一覧に出す」にチェックすると、全部の中から探します。';
   } else {
     list = pool.filter(function (m) { return inPickType(m, type); });
-    if (type !== 'fav') list = list.filter(function (m) { return m.fav; }).concat(list.filter(function (m) { return !m.fav; }));
     if (!list.length) note = 'この種類の農薬はありません。';
   }
+  // 五十音順（よく使うものを先に）。本人の希望 2026-11-07
+  list = list.slice().sort(function (a, b) { return (b.fav - a.fav) || a.name.localeCompare(b.name, 'ja'); });
   q('.ptypes').innerHTML = PICK_TYPES.filter(function (t) { return t[0] === type || pool.some(function (m) { return inPickType(m, t[0]); }); }).map(function (t) {
     return '<button type="button" data-pt="' + t[0] + '"' + (!key && t[0] === type ? ' class="on"' : '') + '>' + t[1] + '</button>';
   }).join('');
@@ -1378,7 +1379,7 @@ function renderPlanInputs() {
   document.querySelectorAll('[data-ph]').forEach(function (b) { b.addEventListener('click', function () { planHouseOn[b.dataset.ph] = !planHouseOn[b.dataset.ph]; renderPlanInputs(); renderPlan(); }); });
   var list = PEST_CHIPS.concat(planPests.filter(function (p) { return PEST_CHIPS.indexOf(p) < 0; }));
   $('planPests').innerHTML = list.map(function (p) { return '<label><input type="checkbox" value="' + esc(p) + '"' + (planPests.indexOf(p) >= 0 ? ' checked' : '') + '>' + esc(p) + '</label>'; }).join('');
-  var fol = master.filter(function (m) { return m.type === '葉面散布剤' && (m.use || m.fav); });
+  var fol = master.filter(function (m) { return m.type === '葉面散布剤' && (m.use || m.fav); }).sort(function (a, b) { return (b.fav - a.fav) || a.name.localeCompare(b.name, 'ja'); });
   $('planFoliar').innerHTML = fol.length ? fol.map(function (m) { return '<label><input type="checkbox" value="' + esc(m.name) + '"' + (planFoliar.indexOf(m.name) >= 0 ? ' checked' : '') + '>' + esc(m.name) + '</label>'; }).join('') : '<span class="note">読み込み中です。</span>';
   renderSpread();
 }
